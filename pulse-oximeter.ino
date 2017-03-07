@@ -23,23 +23,33 @@
 
 #define INPUT_PIN A0 // change as needed
 #define STDDEV_THRESHOLD 0.9 //.0
+#define LED_PIN 2
 
+// Sensor input.
 AnalogIn in(INPUT_PIN);
+
+// Normalizer to N(0, 1).
 AdaptiveNormalizer normalizer(0, 1);
 //Normalizer normalizer(0, 1);
-DigitalOut led(2); // defaults to pin 13
 
+// Detects rising signals.
+//Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_HIGH);
+Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_RISING, 0.0f);
 
-float lastreading, thisreading;
+// LED output.
+DigitalOut led(LED_PIN);
+
+// Serial output.
+StreamOut sout;
+
 float IBI = 0;
 unsigned long lastbeat = 0;
 unsigned long now = 0;
 
-void setup() {
+void begin() {
   Serial.begin(115200);
-  lastreading = thisreading = 0;
 
-#ifdef __BUILD_FEATHER__
+#ifdef __BUILD_FEATHER__  
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
@@ -59,23 +69,11 @@ void setup() {
 #endif
 }
 
-void loop() {
+void step() {
+  // Process input.
+  in >> normalizer >> peakDetector >> led;
 
-  lastreading = thisreading;
-
-  // send to normalizer
-  in >> normalizer;
-  thisreading = normalizer;
-
-  Serial.print(thisreading);
-  Serial.print(",");
-  Serial.print(STDDEV_THRESHOLD);
-  Serial.print(",");
-  if ( (lastreading < STDDEV_THRESHOLD) 
-        && (thisreading >= STDDEV_THRESHOLD) ) { //(norm > STDDEV_THRESHOLD) { // oldvalue<threshold && newvalue>=threshold){
-    Serial.print(3.0);
-    led.on();
-
+  if (peakDetector) {
     now = millis();
     IBI = abs(now - lastbeat); //2 + (abs(now - lastbeat) / 1000); // IBI in seconds
     lastbeat = now;
@@ -88,15 +86,11 @@ void loop() {
     out.send(Udp);
     Udp.endPacket();
 #endif
-  } else {
-    Serial.print(.0);
-    led.off();
-  // tip (just for fun): lines 17-20 can be replaced by this: (normalizer > STDDEV_THRESHOLD) >> led;
-  }
+  } 
 
-  Serial.print(",");
-  Serial.print(IBI);
-  Serial.println();
-  delay(20);
+//  Serial.print(",");
+//  Serial.print(IBI);
+//  Serial.println();
+//  delay(20);
 }
 
