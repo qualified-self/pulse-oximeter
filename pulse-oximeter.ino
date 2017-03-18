@@ -1,6 +1,6 @@
 // build settings change between featherboard and arduino nano
-#define __BUILD_FEATHER__ // to switch to Arduino #undef this line...
-#undef __BUILD_NANO__ // ... and #define this one
+#undef __BUILD_FEATHER__ // to switch to Arduino #undef this line...
+#define __BUILD_NANO__ // ... and #define this one
 
 #ifdef __BUILD_FEATHER__
   #include <ESP8266WiFi.h>
@@ -20,6 +20,9 @@
   const unsigned int outPort = 12345;          // remote port to receive OSC
   const unsigned int localPort = 54321;        // local port to listen for OSC packets (actually not used for sending)
 #endif
+
+#define SENSOR_ID 100
+
 
 #define INPUT_PIN A0 // change as needed
 #define STDDEV_THRESHOLD 0.9 //.0
@@ -82,6 +85,7 @@ void loop() {
 
 #ifdef __BUILD_FEATHER__
     OSCMessage out("/beat");
+    out.add(SENSOR_ID);
     out.add(IBI);
     
     Udp.beginPacket(outIp, outPort);
@@ -94,8 +98,8 @@ void loop() {
   // tip (just for fun): lines 17-20 can be replaced by this: (normalizer > STDDEV_THRESHOLD) >> led;
   }
 
-  Serial.print(",");
-  Serial.print(IBI);
+//  Serial.print(",");
+//  Serial.print(IBI);
   Serial.println();
   delay(20);
 }
