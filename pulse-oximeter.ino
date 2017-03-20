@@ -1,6 +1,6 @@
 // build settings change between featherboard and arduino nano
-#undef __BUILD_FEATHER__ // to switch to Arduino #undef this line...
-#define __BUILD_NANO__ // ... and #define this one
+#define __BUILD_FEATHER__ // to switch to Arduino #undef this line...
+#undef __BUILD_NANO__ // ... and #define this one
 
 #ifdef __BUILD_FEATHER__
   #include <ESP8266WiFi.h>
@@ -15,13 +15,13 @@
   #include "wifisettings.h"
   
   WiFiUDP Udp;                                // A UDP instance to let us send and receive packets over UDP
-  //const IPAddress outIp(192, 168, 1, 75);
-  const IPAddress outIp(192, 168, 8, 205);
+  const IPAddress outIp(192, 168, 8, 100);
   const unsigned int outPort = 12345;          // remote port to receive OSC
   const unsigned int localPort = 54321;        // local port to listen for OSC packets (actually not used for sending)
+  IPAddress thisip;
+  byte ip_tuple[4];
 #endif
 
-#define SENSOR_ID 100
 
 
 #define INPUT_PIN A0 // change as needed
@@ -36,20 +36,21 @@ AdaptiveNormalizer normalizer(0, 1);
 //Normalizer normalizer(0, 1);
 
 // Detects rising signals.
-//Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_HIGH);
-Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_RISING, 0.0f);
+Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_HIGH);
+//Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_RISING, 0.0f);
 
 // LED output.
 DigitalOut led(LED_PIN);
 
-// Serial output.
-StreamOut sout;
 
+float lastreading, thisreading;
 float IBI = 0;
 unsigned long lastbeat = 0;
 unsigned long now = 0;
 
-void begin() {
+int sensor_id = -1;
+
+void setup() {
   Serial.begin(115200);
 
 #ifdef __BUILD_FEATHER__  
@@ -68,38 +69,51 @@ void begin() {
   Serial.println("");
   Serial.println("WiFi connected");  
   Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  thisip = WiFi.localIP();
+  Serial.println( thisip );
+
+  // sensor ID is the last byte in the IP quad
+  sensor_id = thisip[3];
 #endif
 }
 
-void step() {
+void loop() {
   // Process input.
-  in >> normalizer >> peakDetector >> led;
+  in >> normalizer;
+  normalizer >> peakDetector; // >> led;
+  thisreading = normalizer;
 
+  Serial.print(thisreading);
+  Serial.print(",");
+  Serial.print(STDDEV_THRESHOLD);
+  Serial.print(",");
+ 
   if (peakDetector) {
     now = millis();
     IBI = abs(now - lastbeat); //2 + (abs(now - lastbeat) / 1000); // IBI in seconds
     lastbeat = now;
+    Serial.print(3.0);
 
+    IBI = abs(now - lastbeat); //2 + (abs(now - lastbeat) / 1000); // IBI in seconds
+    lastbeat = now;
+ 
 #ifdef __BUILD_FEATHER__
     OSCMessage out("/beat");
-    out.add(SENSOR_ID);
+    out.add(sensor_id);
     out.add(IBI);
     
     Udp.beginPacket(outIp, outPort);
     out.send(Udp);
     Udp.endPacket();
 #endif
-  } 
+  } else {
+    Serial.print(.0);
+  }
 
 //  Serial.print(",");
 //  Serial.print(IBI);
-<<<<<<< HEAD
+
   Serial.println();
   delay(20);
-=======
-//  Serial.println();
-//  delay(20);
->>>>>>> adb0dba3f4cc7284f0976380c7b56103f9e12f81
 }
 
