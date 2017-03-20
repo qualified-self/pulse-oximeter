@@ -19,7 +19,6 @@
   const unsigned int outPort = 12345;          // remote port to receive OSC
   const unsigned int localPort = 54321;        // local port to listen for OSC packets (actually not used for sending)
   IPAddress thisip;
-  byte ip_tuple[4];
 #endif
 
 
