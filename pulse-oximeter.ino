@@ -24,7 +24,7 @@
 
 #define INPUT_PIN A0 // change as needed
 #define STDDEV_THRESHOLD 0.9 //.0
-#define LED_PIN 2
+#define LED_PIN 0 // built-in LED in featherboard is on pin 0
 
 // Sensor input.
 AnalogIn in(INPUT_PIN);
@@ -86,7 +86,7 @@ void dispatch_beat() {
     Udp.beginPacket(outIp, outPort);
     out.send(Udp);
     Udp.endPacket();
-#elif
+#else
     Serial.println("beat");
 #endif
 }
@@ -94,7 +94,7 @@ void dispatch_beat() {
 void step() {
   // process input.
   in >> normalizer;
-  normalizer >> peakDetector; // >> led;
+  normalizer >> peakDetector >> led;
   thisreading = normalizer;
 
   Serial.print(thisreading);
