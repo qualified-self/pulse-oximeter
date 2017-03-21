@@ -49,7 +49,7 @@ unsigned long now = 0;
 
 int sensor_id = -1;
 
-void setup() {
+void begin() {
   Serial.begin(115200);
 
 #ifdef __BUILD_FEATHER__  
@@ -76,7 +76,7 @@ void setup() {
 #endif
 }
 
-void loop() {
+void step() {
   // Process input.
   in >> normalizer;
   normalizer >> peakDetector; // >> led;
@@ -93,9 +93,6 @@ void loop() {
     lastbeat = now;
     Serial.print(3.0);
 
-    IBI = abs(now - lastbeat); //2 + (abs(now - lastbeat) / 1000); // IBI in seconds
-    lastbeat = now;
- 
 #ifdef __BUILD_FEATHER__
     OSCMessage out("/beat");
     out.add(sensor_id);
