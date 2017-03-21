@@ -22,7 +22,6 @@
 #endif
 
 
-
 #define INPUT_PIN A0 // change as needed
 #define STDDEV_THRESHOLD 0.9 //.0
 #define LED_PIN 2
@@ -41,6 +40,8 @@ Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_HIGH);
 // LED output.
 DigitalOut led(LED_PIN);
 
+
+bool beatDispatched = false;
 
 float lastreading, thisreading;
 float IBI = 0;
@@ -76,8 +77,22 @@ void begin() {
 #endif
 }
 
+void dispatch_beat() {
+#ifdef __BUILD_FEATHER__
+    OSCMessage out("/beat");
+    out.add(sensor_id);
+    out.add(IBI);
+    
+    Udp.beginPacket(outIp, outPort);
+    out.send(Udp);
+    Udp.endPacket();
+#elif
+    Serial.println("beat");
+#endif
+}
+
 void step() {
-  // Process input.
+  // process input.
   in >> normalizer;
   normalizer >> peakDetector; // >> led;
   thisreading = normalizer;
@@ -93,17 +108,16 @@ void step() {
     lastbeat = now;
     Serial.print(3.0);
 
-#ifdef __BUILD_FEATHER__
-    OSCMessage out("/beat");
-    out.add(sensor_id);
-    out.add(IBI);
-    
-    Udp.beginPacket(outIp, outPort);
-    out.send(Udp);
-    Udp.endPacket();
-#endif
+    // send the beat osc message only once
+    if(beatDispatched == false) {
+      dispatch_beat();
+      beatDispatched = true;
+    }
+
   } else {
     Serial.print(.0);
+    // make sure we dispatch the next beat
+    beatDispatched = false;
   }
 
 //  Serial.print(",");
