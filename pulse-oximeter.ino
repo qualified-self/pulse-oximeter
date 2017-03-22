@@ -2,6 +2,9 @@
 #define __BUILD_FEATHER__ // to switch to Arduino #undef this line...
 #undef __BUILD_NANO__ // ... and #define this one
 
+#include <Metro.h>
+#include "config.h"
+
 #ifdef __BUILD_FEATHER__
   #include <ESP8266WiFi.h>
   #include <WiFiUdp.h>
@@ -15,12 +18,14 @@
   #include "wifisettings.h"
   
   WiFiUDP Udp;                                // A UDP instance to let us send and receive packets over UDP
-  const IPAddress outIp(192, 168, 8, 100);
-  const unsigned int outPort = 12345;          // remote port to receive OSC
-  const unsigned int localPort = 54321;        // local port to listen for OSC packets (actually not used for sending)
+  const IPAddress dest(192, 168, 8, 100);
+  const unsigned int rxport = 54321;          // remote port to receive OSC
+  const unsigned int txport = 12345;        // local port to listen for OSC packets (actually not used for sending)
   IPAddress thisip;
 #endif
 
+
+Metro alive = Metro(ALIVE_ACK_MS);
 
 #define INPUT_PIN A0 // change as needed
 #define STDDEV_THRESHOLD 0.9 //.0
@@ -83,12 +88,27 @@ void dispatch_beat() {
     out.add(sensor_id);
     out.add(IBI);
     
-    Udp.beginPacket(outIp, outPort);
+    Udp.beginPacket(dest, txport);
     out.send(Udp);
     Udp.endPacket();
 #else
     Serial.println("beat");
 #endif
+}
+
+void state_loop() {
+
+  // send alive ACK message to show-control
+  if(alive.check()) {
+    _LOG("-> ACK");
+    OSCMessage out("/oximeter/ack");
+    out.add( sensor_id );
+    Udp.beginPacket(dest, txport);
+    out.send(Udp);
+    Udp.endPacket();
+    out.empty();
+  }
+
 }
 
 void step() {
@@ -119,6 +139,8 @@ void step() {
     // make sure we dispatch the next beat
     beatDispatched = false;
   }
+
+  state_loop();
 
 //  Serial.print(",");
 //  Serial.print(IBI);
