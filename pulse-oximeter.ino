@@ -16,12 +16,6 @@
 
 #ifdef __BUILD_FEATHER__
   #include "wifisettings.h"
-  
-  WiFiUDP Udp;                                // A UDP instance to let us send and receive packets over UDP
-  const IPAddress dest(192, 168, 8, 100);
-  const unsigned int rxport = 54321;          // remote port to receive OSC
-  const unsigned int txport = 12345;        // local port to listen for OSC packets (actually not used for sending)
-  IPAddress thisip;
 #endif
 
 
@@ -43,7 +37,7 @@ Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_HIGH);
 //Thresholder peakDetector(STDDEV_THRESHOLD, THRESHOLD_RISING, 0.0f);
 
 // LED output.
-DigitalOut led(LED_PIN);
+//DigitalOut led(LED_PIN);
 
 
 bool beatDispatched = false;
@@ -79,21 +73,23 @@ void begin() {
 
   // sensor ID is the last byte in the IP quad
   sensor_id = thisip[3];
+
+  //led << 0;
 #endif
 }
 
 void dispatch_beat() {
 #ifdef __BUILD_FEATHER__
-    OSCMessage out("/beat");
+    OSCMessage out("/oximeter/beat");
     out.add(sensor_id);
     out.add(IBI);
     
     Udp.beginPacket(dest, txport);
     out.send(Udp);
     Udp.endPacket();
-#else
-    Serial.println("beat");
 #endif
+    //Serial.println("beat");
+    beatDispatched = true;
 }
 
 void state_loop() {
@@ -114,7 +110,7 @@ void state_loop() {
 void step() {
   // process input.
   in >> normalizer;
-  normalizer >> peakDetector >> led;
+  normalizer >> peakDetector; // >> led;
   thisreading = normalizer;
 
   Serial.print(thisreading);
@@ -129,9 +125,8 @@ void step() {
     Serial.print(3.0);
 
     // send the beat osc message only once
-    if(beatDispatched == false) {
+    if(!beatDispatched) {
       dispatch_beat();
-      beatDispatched = true;
     }
 
   } else {
